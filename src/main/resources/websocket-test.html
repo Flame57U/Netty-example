@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        .sent { color: blue; }
+        .received { color: green; }
+        .system { color: gray; font-style: italic; }
+        input[type="text"] { width: 300px; padding: 5px; }
+        button { padding: 5px 15px; margin-left: 5px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/reconnecting-websocket@4.4.0/dist/reconnecting-websocket.iife.min.js"></script>
+</head>
+<body>
+    <h2>Netty WebSocket Test</h2>
+    <div>
+        <input type="text" id="messageInput" placeholder="输入消息..." onkeypress="if(event.keyCode===13) sendMessage()">
+        <button onclick="sendMessage()">发送</button>
+        <button onclick="connect()">连接</button>
+        <button onclick="disconnect()">断开</button>
+    </div>
+    <div id="messages"></div>
+
+    <script type="module">
+        import rfidService from './rfid-service.js';
+        let ws;
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+
+        function addMessage(text, className) {
+            const p = document.createElement('p');
+            p.className = className;
+            p.textContent = text;
+            messagesDiv.appendChild(p);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addMessage('Already connected', 'system');
+                return;
+            }
+            ws = new WebSocket('ws://localhost:8080/ws');
+            ws.onopen = () => addMessage('Connected to server', 'system');
+            ws.onmessage = (event) => addMessage('Received: ' + event.data, 'received');
+            ws.onclose = () => addMessage('Disconnected', 'system');
+            ws.onerror = (error) => addMessage('Error: ' + error, 'system');
+        }
+
+        function disconnect() {
+            if (ws) ws.close();
+        }
+
+        function sendMessage() {
+            const msg = messageInput.value.trim();
+            if (!msg) return;
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addMessage('Not connected', 'system');
+                return;
+            }
+            ws.send(msg);
+            addMessage('Sent: ' + msg, 'sent');
+            messageInput.value = '';
+        }
+
+        connect();
+    </script>
+</body>
+</html>
