@@ -24,13 +24,20 @@ public class Server {
 
         //设置为非阻塞
         channel.configureBlocking(false);
-
+//将socketchannel注册到selector，关注事件为OP_READ,
+        //同时给socketchannel关联一个Buffer todo ByteBuffer.allocate(512);
         channel.register(selector, SelectionKey.OP_ACCEPT);
         //循环等待客户端链接
 
-        int count = selector.select(2000);
         // 等待事件
-        if (count > 0) {
+        while (true) {
+
+            int count = selector.select(2000);
+
+            if(count == 0){
+                System.out.println("服务ing...");
+                continue;
+            }
             // 获取发生事件的key集合
             Set<SelectionKey> keys =
                     selector.selectedKeys();
@@ -50,20 +57,19 @@ public class Server {
                 // 新连接事件
                 // ======================
                 if (key.isAcceptable()) {
-
-                    ServerSocketChannel serverChannel =
-                            (ServerSocketChannel) key.channel();
+//                    ServerSocketChannel serverChannel =
+//                            (ServerSocketChannel) key.channel();
 
                     SocketChannel sc =
-                            serverChannel.accept();
+                            channel.accept();
 
                     if (sc != null) {
 
                         System.out.println(
                                 sc.getRemoteAddress()
-                                        + " 上线"
+                                        + " 上线 " + sc.hashCode()
                         );
-                        // 非阻塞
+                        // 将SocketChannel设置为非阻塞
                         sc.configureBlocking(false);
 
                         // 注册读事件
@@ -78,12 +84,12 @@ public class Server {
                 // 读事件
                 // ======================
                 if (key.isReadable()) {
+//          通道数据转ByteBuffer          ByteBuffer buffer = (ByteBuffer)key.attachment();
 
                     SocketChannel sc =
                             (SocketChannel) key.channel();
                     ByteBuffer buffer =
-                            ByteBuffer.allocate(1024);
-
+                            (ByteBuffer) key.attachment();
 
                     try {
 
